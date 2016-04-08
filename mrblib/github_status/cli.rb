@@ -18,18 +18,19 @@ module GithubStatus
         exit_on_error "This is not a GitHub repo" unless remote_origin_url[0..13] == "git@github.com"
 
         repo_name = remote_origin_url[15..-6]
+        user_name = repo_name[0..(repo_name.index("/") - 1)]
 
         refs_head_name = `git symbolic-ref HEAD`
 
         exit_on_error "The HEAD is detached" unless refs_head_name[0..10] == "refs/heads/"
 
-        branch_name = refs_head_name[11..-1]
+        branch_name = refs_head_name[11..-1].chomp
 
         api = API.new("api.github.com", "", {"Accept" => "application/json", "User-Agent" => "github_status CLI"})
 
         pull_request_url = api.url(
           {repos: repo_name, pulls: nil},
-          {head: branch_name}
+          {head: "#{user_name}:#{branch_name}"}
         )
 
         json_response = api.get(pull_request_url)
@@ -51,7 +52,6 @@ module GithubStatus
     private
     def setup_options
       options = Options.new
-      options.add(Option.new("branch", "b", true))
       options.add(Option.new("version", "v"))
       options.add(Option.new("help", "h"))
 
